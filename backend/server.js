@@ -7,7 +7,7 @@ app.use(express.json());
 app.use(cors());
 
 // 🔗 MongoDB connect
-mongoose.connect("mongodb://127.0.0.1:27017/libraryDB")
+mongoose.connect("mongodb+srv://admin:admin123@cluster0.ffn2gxe.mongodb.net/libraryDB")
 .then(() => console.log("MongoDB connected"))
 .catch(err => console.log(err));
 
