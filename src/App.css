@@ -1,0 +1,86 @@
+/* 🌙 Background */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+}
+
+/* Container */
+.container {
+  padding: 20px;
+  min-height: 100vh;
+}
+
+/* Title */
+.title {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Form */
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.input {
+  padding: 10px;
+  border-radius: 5px;
+  border: none;
+  width: 200px;
+}
+
+/* Button */
+.button {
+  padding: 10px 20px;
+  background: #22c55e;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #16a34a;
+}
+
+/* List */
+.list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+/* Card */
+.card {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Buttons */
+.editBtn {
+  margin-right: 10px;
+  background: orange;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.deleteBtn {
+  background: red;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
