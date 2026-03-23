@@ -6,14 +6,6 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 🔗 MongoDB connect (Atlas)
-mongoose.connect("mongodb+srv://admin:admin123@cluster0.ffn2gxe.mongodb.net/libraryDB", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("MongoDB connected"))
-.catch(err => console.log("MongoDB error:", err));
-
 // 📚 Schema
 const bookSchema = new mongoose.Schema({
   name: String,
@@ -23,7 +15,7 @@ const bookSchema = new mongoose.Schema({
 
 const Book = mongoose.model("Book", bookSchema);
 
-// ✅ GET all books
+// ✅ ROUTES
 app.get("/books", async (req, res) => {
   try {
     const books = await Book.find();
@@ -33,7 +25,6 @@ app.get("/books", async (req, res) => {
   }
 });
 
-// ✅ POST new book
 app.post("/books", async (req, res) => {
   try {
     const book = new Book(req.body);
@@ -44,7 +35,6 @@ app.post("/books", async (req, res) => {
   }
 });
 
-// ❌ DELETE book
 app.delete("/books/:id", async (req, res) => {
   try {
     await Book.findByIdAndDelete(req.params.id);
@@ -54,7 +44,6 @@ app.delete("/books/:id", async (req, res) => {
   }
 });
 
-// ✅ UPDATE book
 app.put("/books/:id", async (req, res) => {
   try {
     const updatedBook = await Book.findByIdAndUpdate(
@@ -68,9 +57,17 @@ app.put("/books/:id", async (req, res) => {
   }
 });
 
-// 🚀 IMPORTANT FIX (PORT)
+// 🚀 PORT
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// 🔥 IMPORTANT: DB connect FIRST, then start server
+mongoose.connect("mongodb+srv://admin:admin123@cluster0.ffn2gxe.mongodb.net/libraryDB")
+.then(() => {
+  console.log("MongoDB connected");
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+
+})
+.catch(err => console.log("MongoDB error:", err));
