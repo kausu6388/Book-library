@@ -6,10 +6,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 🔗 MongoDB connect
-mongoose.connect("mongodb+srv://admin:admin123@cluster0.ffn2gxe.mongodb.net/libraryDB")
+// 🔗 MongoDB connect (Atlas)
+mongoose.connect("mongodb+srv://admin:admin123@cluster0.ffn2gxe.mongodb.net/libraryDB", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
 .then(() => console.log("MongoDB connected"))
-.catch(err => console.log(err));
+.catch(err => console.log("MongoDB error:", err));
 
 // 📚 Schema
 const bookSchema = new mongoose.Schema({
@@ -22,33 +25,52 @@ const Book = mongoose.model("Book", bookSchema);
 
 // ✅ GET all books
 app.get("/books", async (req, res) => {
-  const books = await Book.find();
-  res.json(books);
+  try {
+    const books = await Book.find();
+    res.json(books);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 // ✅ POST new book
 app.post("/books", async (req, res) => {
-  const book = new Book(req.body);
-  await book.save();
-  res.json(book);
+  try {
+    const book = new Book(req.body);
+    await book.save();
+    res.json(book);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 // ❌ DELETE book
 app.delete("/books/:id", async (req, res) => {
-  await Book.findByIdAndDelete(req.params.id);
-  res.send("Deleted");
+  try {
+    await Book.findByIdAndDelete(req.params.id);
+    res.send("Deleted");
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
-// update route
+// ✅ UPDATE book
 app.put("/books/:id", async (req, res) => {
-  const updatedBook = await Book.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    { new: true }
-  );
-  res.json(updatedBook);
+  try {
+    const updatedBook = await Book.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    res.json(updatedBook);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+// 🚀 IMPORTANT FIX (PORT)
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
