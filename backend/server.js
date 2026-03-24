@@ -1,12 +1,19 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+
+// 👇 IMPORTANT: path sahi hona chahiye
+const User = require("./models/User");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// 📚 Schema
+const SECRET = "mysecretkey";
+
+// 📚 Book Schema
 const bookSchema = new mongoose.Schema({
   name: String,
   author: String,
@@ -15,7 +22,10 @@ const bookSchema = new mongoose.Schema({
 
 const Book = mongoose.model("Book", bookSchema);
 
-// ✅ ROUTES
+
+// ================= BOOK ROUTES =================
+
+// GET
 app.get("/books", async (req, res) => {
   try {
     const books = await Book.find();
@@ -25,6 +35,7 @@ app.get("/books", async (req, res) => {
   }
 });
 
+// POST
 app.post("/books", async (req, res) => {
   try {
     const book = new Book(req.body);
@@ -35,6 +46,7 @@ app.post("/books", async (req, res) => {
   }
 });
 
+// DELETE
 app.delete("/books/:id", async (req, res) => {
   try {
     await Book.findByIdAndDelete(req.params.id);
@@ -44,6 +56,7 @@ app.delete("/books/:id", async (req, res) => {
   }
 });
 
+// UPDATE
 app.put("/books/:id", async (req, res) => {
   try {
     const updatedBook = await Book.findByIdAndUpdate(
@@ -57,10 +70,51 @@ app.put("/books/:id", async (req, res) => {
   }
 });
 
-// 🚀 PORT
+
+// ================= AUTH ROUTES =================
+
+// SIGNUP
+app.post("/signup", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    const user = new User({ email, password: hashed });
+    await user.save();
+
+    res.json({ message: "User created" });
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+// LOGIN
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).send("User not found");
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).send("Wrong password");
+
+    const token = jwt.sign({ id: user._id }, SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.json({ token });
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+
+// ================= SERVER =================
+
 const PORT = process.env.PORT || 3000;
 
-// 🔥 IMPORTANT: DB connect FIRST, then start server
 mongoose.connect("mongodb+srv://admin:admin123@cluster0.ffn2gxe.mongodb.net/libraryDB")
 .then(() => {
   console.log("MongoDB connected");
@@ -68,6 +122,5 @@ mongoose.connect("mongodb+srv://admin:admin123@cluster0.ffn2gxe.mongodb.net/libr
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
-
 })
 .catch(err => console.log("MongoDB error:", err));
