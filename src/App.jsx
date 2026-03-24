@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+const API = "https://book-library-gaac.onrender.com";
+
 function App() {
   const [books, setBooks] = useState([]);
   const [form, setForm] = useState({
@@ -11,49 +13,85 @@ function App() {
 
   const [editId, setEditId] = useState(null);
 
+  // 🔑 TOKEN
+  const token = localStorage.getItem("token");
+
+  // 📚 GET BOOKS
   const fetchBooks = async () => {
-    const res = await fetch("http://localhost:3000/books");
-    const data = await res.json();
-    setBooks(data);
+    try {
+      const res = await fetch(`${API}/books`, {
+        headers: {
+          Authorization: token
+        }
+      });
+
+      const data = await res.json();
+      setBooks(data);
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   useEffect(() => {
-    fetchBooks();
-  }, []);
+    if (token) fetchBooks();
+  }, [token]);
 
+  // 📝 INPUT CHANGE
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // ➕ ADD / ✏️ UPDATE
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (editId) {
-      await fetch(`http://localhost:3000/books/${editId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
-      });
-      setEditId(null);
-    } else {
-      await fetch("http://localhost:3000/books", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
-      });
+    try {
+      if (editId) {
+        await fetch(`${API}/books/${editId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token
+          },
+          body: JSON.stringify(form)
+        });
+        setEditId(null);
+      } else {
+        await fetch(`${API}/books`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token
+          },
+          body: JSON.stringify(form)
+        });
+      }
+
+      fetchBooks();
+      setForm({ name: "", author: "", price: "" });
+
+    } catch (err) {
+      console.log(err);
     }
-
-    fetchBooks();
-    setForm({ name: "", author: "", price: "" });
   };
 
+  // ❌ DELETE
   const deleteBook = async (id) => {
-    await fetch(`http://localhost:3000/books/${id}`, {
-      method: "DELETE"
-    });
-    fetchBooks();
+    try {
+      await fetch(`${API}/books/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: token
+        }
+      });
+
+      fetchBooks();
+    } catch (err) {
+      console.log(err);
+    }
   };
 
+  // ✏️ EDIT
   const editBook = (book) => {
     setForm({
       name: book.name,
@@ -63,9 +101,30 @@ function App() {
     setEditId(book._id);
   };
 
+  // 🚫 NO TOKEN UI
+  if (!token) {
+    return (
+      <div style={{ textAlign: "center", marginTop: "100px" }}>
+        <h2>🔒 Please Login First</h2>
+        <p>Token not found</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <h1 className="title">📚 Book Library</h1>
+
+      {/* LOGOUT BUTTON */}
+      <button
+        onClick={() => {
+          localStorage.removeItem("token");
+          window.location.reload();
+        }}
+        style={{ marginBottom: "20px", background: "red", color: "white" }}
+      >
+        Logout
+      </button>
 
       {/* FORM */}
       <form onSubmit={handleSubmit} className="form">

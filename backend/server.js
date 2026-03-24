@@ -3,102 +3,88 @@ import mongoose from "mongoose";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import User from "./models/User.js";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
+// 🔐 SECRET KEY
 const SECRET = "mysecretkey";
 
-// 📚 Book Schema
+// ======================
+// 📚 BOOK MODEL
+// ======================
 const bookSchema = new mongoose.Schema({
   name: String,
   author: String,
   price: Number,
+  userId: String   // 🔥 user-wise data
 });
 
 const Book = mongoose.model("Book", bookSchema);
 
-// ================= BOOK ROUTES =================
-
-// GET
-app.get("/books", async (req, res) => {
-  try {
-    const books = await Book.find();
-    res.json(books);
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
+// ======================
+// 👤 USER MODEL
+// ======================
+const userSchema = new mongoose.Schema({
+  email: String,
+  password: String
 });
 
-// POST
-app.post("/books", async (req, res) => {
+const User = mongoose.model("User", userSchema);
+
+// ======================
+// 🔐 AUTH MIDDLEWARE
+// ======================
+const auth = (req, res, next) => {
   try {
-    const book = new Book(req.body);
-    await book.save();
-    res.json(book);
+    const token = req.headers.authorization;
+
+    if (!token) return res.status(401).send("No token");
+
+    const decoded = jwt.verify(token, SECRET);
+    req.userId = decoded.id;
+
+    next();
   } catch (err) {
-    res.status(500).send(err.message);
+    res.status(401).send("Invalid token");
   }
-});
+};
 
-// DELETE
-app.delete("/books/:id", async (req, res) => {
+// ======================
+// 🔑 REGISTER
+// ======================
+app.post("/register", async (req, res) => {
   try {
-    await Book.findByIdAndDelete(req.params.id);
-    res.send("Deleted");
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
+    const hashed = await bcrypt.hash(req.body.password, 10);
 
-// UPDATE
-app.put("/books/:id", async (req, res) => {
-  try {
-    const updatedBook = await Book.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-    res.json(updatedBook);
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
-
-// ================= AUTH =================
-
-// SIGNUP
-app.post("/signup", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const hashed = await bcrypt.hash(password, 10);
-    const user = new User({ email, password: hashed });
+    const user = new User({
+      email: req.body.email,
+      password: hashed
+    });
 
     await user.save();
 
-    res.json({ message: "User created" });
+    res.json({ message: "User registered" });
   } catch (err) {
     res.status(500).send(err.message);
   }
 });
 
-// LOGIN
+// ======================
+// 🔑 LOGIN
+// ======================
 app.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const user = await User.findOne({ email: req.body.email });
 
-    const user = await User.findOne({ email });
     if (!user) return res.status(400).send("User not found");
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).send("Wrong password");
+    const valid = await bcrypt.compare(req.body.password, user.password);
 
-    const token = jwt.sign({ id: user._id }, SECRET, {
-      expiresIn: "1h",
-    });
+    if (!valid) return res.status(400).send("Wrong password");
+
+    const token = jwt.sign({ id: user._id }, SECRET);
 
     res.json({ token });
   } catch (err) {
@@ -106,8 +92,71 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// ================= SERVER =================
+// ======================
+// 📚 GET BOOKS (USER BASED)
+// ======================
+app.get("/books", auth, async (req, res) => {
+  try {
+    const books = await Book.find({ userId: req.userId });
+    res.json(books);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
 
+// ======================
+// ➕ ADD BOOK
+// ======================
+app.post("/books", auth, async (req, res) => {
+  try {
+    const book = new Book({
+      ...req.body,
+      userId: req.userId
+    });
+
+    await book.save();
+    res.json(book);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+// ======================
+// ❌ DELETE BOOK
+// ======================
+app.delete("/books/:id", auth, async (req, res) => {
+  try {
+    await Book.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.userId
+    });
+
+    res.send("Deleted");
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+// ======================
+// ✏️ UPDATE BOOK
+// ======================
+app.put("/books/:id", auth, async (req, res) => {
+  try {
+    const updated = await Book.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      req.body,
+      { new: true }
+    );
+
+    res.json(updated);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+// ======================
+// 🚀 CONNECT DB + START
+// ======================
 const PORT = process.env.PORT || 3000;
 
 mongoose
@@ -119,4 +168,4 @@ mongoose
       console.log(`Server running on port ${PORT}`);
     });
   })
-  .catch((err) => console.log("MongoDB error:", err));
+  .catch((err) => console.log(err));
