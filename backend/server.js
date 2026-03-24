@@ -1,11 +1,9 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-
-// 👇 IMPORTANT: path sahi hona chahiye
-const User = require("./models/User");
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import User from "./models/User.js";
 
 const app = express();
 app.use(express.json());
@@ -17,11 +15,10 @@ const SECRET = "mysecretkey";
 const bookSchema = new mongoose.Schema({
   name: String,
   author: String,
-  price: Number
+  price: Number,
 });
 
 const Book = mongoose.model("Book", bookSchema);
-
 
 // ================= BOOK ROUTES =================
 
@@ -70,8 +67,7 @@ app.put("/books/:id", async (req, res) => {
   }
 });
 
-
-// ================= AUTH ROUTES =================
+// ================= AUTH =================
 
 // SIGNUP
 app.post("/signup", async (req, res) => {
@@ -79,8 +75,8 @@ app.post("/signup", async (req, res) => {
     const { email, password } = req.body;
 
     const hashed = await bcrypt.hash(password, 10);
-
     const user = new User({ email, password: hashed });
+
     await user.save();
 
     res.json({ message: "User created" });
@@ -110,17 +106,17 @@ app.post("/login", async (req, res) => {
   }
 });
 
-
 // ================= SERVER =================
 
 const PORT = process.env.PORT || 3000;
 
-mongoose.connect("mongodb+srv://admin:admin123@cluster0.ffn2gxe.mongodb.net/libraryDB")
-.then(() => {
-  console.log("MongoDB connected");
+mongoose
+  .connect("mongodb+srv://admin:admin123@cluster0.ffn2gxe.mongodb.net/libraryDB")
+  .then(() => {
+    console.log("MongoDB connected");
 
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-})
-.catch(err => console.log("MongoDB error:", err));
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => console.log("MongoDB error:", err));
